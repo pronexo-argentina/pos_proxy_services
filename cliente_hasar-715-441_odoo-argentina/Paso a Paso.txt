@@ -1,0 +1,5 @@
+1. Click derecho en el ejecutable InstaladorDependencias.exe y Ejecutar como Administrador
+2. Seleccionar el puerto Com donde esta conectada la impresora en la lista desplegable y dar click en el boton Asignar
+3. Click en el boton Instalar Dependencias
+	3.1 Saldra un mensaje "DLLRegisterServer correctamente" se le da aceptar
+	3.2 Saldra un mensaje "Dependecias instaladas correctamente" se le da aceptar
