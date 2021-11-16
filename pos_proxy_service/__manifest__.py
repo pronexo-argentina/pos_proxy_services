@@ -45,7 +45,7 @@
     },
 	'auto_install': False,
 	'installable': True,
-	'price': 260,
+	'price': 60,
         'currency': 'USD',
         'images': ['images/pos-proxy-service-home.png'],
         'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
