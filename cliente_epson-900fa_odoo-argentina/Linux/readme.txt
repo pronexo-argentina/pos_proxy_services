@@ -1,4 +1,4 @@
--	pip3 install -r requeriments.txt
+-	pip3 install -r requirements.txt
 - sudo nano /etc/sudoers:
 	-  agregar despues de la linea = root    ALL=(ALL:ALL) ALL				
 		NombreUsuario    ALL=(ALL:ALL) ALL
