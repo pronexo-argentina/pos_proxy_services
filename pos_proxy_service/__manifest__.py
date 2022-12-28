@@ -18,39 +18,50 @@
 ############################################################################## # 
 # 
 {
-	'name': 'Pos Proxy Services',
-	'summary': 'Proxy para usar odoo con impresores fiscales Argentinos para Epson / Hasar',
-	'description': 'Impresor Fiscal Epson, Impresor Fiscal Hasar Vieja y Nueva generacion',
-	'version': '15.0.1.3',
-	'author': "Pronexo",
-	'license': "AGPL-3",
-	'maintainer': 'Pronexo',
-	'category': 'Sales/Point of Sale',
-        'website': 'https://www.pronexo.com',
-	'depends': [
-		'point_of_sale'
-	],
-	'data': [
-		#'security/ir.model.access.csv',
-		'views/uom_view.xml',
-		'views/pos_payment_method_view.xml',
-		'views/pos_config_view.xml'
-	],
-        'assets': {
-            'point_of_sale.assets': [
-            'pos_proxy_service/static/src/js/models.js',
-            'pos_proxy_service/static/src/js/screens.js',
-            'pos_proxy_service/static/src/js/cf_button.js',
-        ],
-        'web.assets_qweb': ['pos_proxy_service/static/src/xml/**/*',],
+    'name': "Pos Proxy Services",
+
+    'summary': """
+        Proxy para usar odoo con impresoras fiscales Argentinos para Epson / Hasar """,
+
+    'description': """
+        Odoo 16 con impresoras Fiscales Epson, Impresor Fiscal Hasar Nueva generacion-
+    """,
+
+    'author': "Pronexo",
+    'website': "https://www.pronexo.com",
+
+    # Categories can be used to filter modules in modules listing
+    # Check https://github.com/odoo/odoo/blob/16.0/odoo/addons/base/data/ir_module_category_data.xml
+    # for the full list
+    'category': 'Sales/Point of Sale',
+    'version': '16.0.0.0',
+
+    # any module necessary for this one to work correctly
+    'depends': ['base','point_of_sale'],
+
+    # always loaded
+    'data': [
+        # 'security/ir.model.access.csv',
+        'views/uom_view.xml',
+        'views/pos_payment_method_view.xml',
+        'views/pos_config_view.xml',
+    ],
+    'assets': {
+        'point_of_sale.assets': [
+            'pos_proxy_service/static/src/js/btn_cierres.js',
+            'pos_proxy_service/static/src/js/screen.js',
+            'pos_proxy_service/static/src/xml/**/*',
+        ]
     },
-	'external_dependencies': {
-   
-    },
-	'auto_install': False,
-	'installable': True,
-	'price': 190,
-        'currency': 'USD',
-        'images': ['images/pos-proxy-service-home.png'],
-        'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
+    # only loaded in demonstration mode
+    'demo': [
+        'demo/demo.xml',
+    ],
+
+    'auto_install': False,
+    'installable': True,
+    'price': 75,
+    'currency': 'USD',
+    'images': ['images/pos-proxy-service-home.png'],
+    'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
 }

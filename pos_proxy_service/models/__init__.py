@@ -3,4 +3,3 @@
 from . import pos_config
 from . import uom
 from . import pos_payment_method
-
