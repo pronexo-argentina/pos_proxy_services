@@ -35,6 +35,7 @@
     # for the full list
     'category': 'Sales/Point of Sale',
     'version': '16.0.0.0',
+    'license': 'OPL-1',
 
     # any module necessary for this one to work correctly
     'depends': ['base','point_of_sale'],
