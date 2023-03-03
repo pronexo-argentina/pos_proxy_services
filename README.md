@@ -1,5 +1,6 @@
 
 <img alt="Odoo by pronexo.com" src="https://i.postimg.cc/5NMNVbTB/Pro-Nexo-Logo2021-2-git.png" />
+
 pronexo.com - https://www.pronexo.com
 
 Módulos para odoo Argentina POS Impresores fiscales Epson y Hasar 
