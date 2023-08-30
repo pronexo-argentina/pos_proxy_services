@@ -21,7 +21,7 @@
 	'name': 'Pos Proxy Services',
 	'summary': 'Proxy para usar odoo con impresores fiscales Argentinos para Epson / Hasar',
 	'description': 'Impresor Fiscal Epson, Impresor Fiscal Hasar Vieja y Nueva generacion',
-	'version': '15.0.1.3',
+	'version': '15.1.0.0',
 	'author': "Pronexo",
 	'license': "AGPL-3",
 	'maintainer': 'Pronexo',
@@ -49,7 +49,7 @@
     },
 	'auto_install': False,
 	'installable': True,
-	'price': 190,
+	'price': 375,
         'currency': 'USD',
         'images': ['images/pos-proxy-service-home.png'],
         'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
