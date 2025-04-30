@@ -109,6 +109,8 @@ export class CierresFButton extends Component {
 ProductScreen.addControlButton({
     component: CierresFButton,
     condition: function () {
-        return true;
+        var self = this;
+        let pos_config = self.env.services.pos.config;
+        return pos_config.use_fiscal_printer;
     },
 });
