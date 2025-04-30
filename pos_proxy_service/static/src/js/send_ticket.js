@@ -1,41 +1,43 @@
-odoo.define('pos_proxy_service.screens', function(require) {
-    'use strict';
+/** @odoo-module */
 
-    const PaymentScreen = require('point_of_sale.PaymentScreen');
-    const Registries = require('point_of_sale.Registries');
-    var { Gui } = require('point_of_sale.Gui');
-    var utils = require('web.utils');
+import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
+import { patch } from "@web/core/utils/patch";
+import { ErrorPopup } from "@point_of_sale/app/errors/popups/error_popup";
+import { Order, Orderline, Payment } from "@point_of_sale/app/store/models";
+import { roundDecimals, roundPrecision } from "@web/core/utils/numbers";
 
-    var round_di = utils.round_decimals;
-    var round_pr = utils.round_precision;
 
-    const POSValidateOverride = PaymentScreen =>
-        class extends PaymentScreen {
-            /**
-             * @override
-             */
+const { onMounted } = owl
 
-            async _finalizeValidation() {
+
+
+patch(ReceiptScreen.prototype, {
+    setup() {
+        super.setup(...arguments);
+
+
+        
+        onMounted(async () => {
+
+            if (this.pos.config.use_fiscal_printer){
                 
-                if (this.env.pos.config.use_fiscal_printer){
-                
-                //var response = this.env.pos.print_pos_ticket();
+                console.info('enviando ticket');
                 var response = this.print_pos_ticket();
-               
-
-                }
-
-                await super._finalizeValidation();
-
             }
 
 
 
-        async state_printer(){
+        })
+
+
+    },
+
+    async state_printer(){
         
         var def  = new $.Deferred();
         var self = this;
-        var url = this.env.pos.config.proxy_fiscal_printer + '/state_printer';
+        let pos_config = self.env.services.pos.config;
+        var url = pos_config.proxy_fiscal_printer + '/state_printer';
     
     
         var print_fiscal_proxy = $.ajax({
@@ -57,15 +59,14 @@ odoo.define('pos_proxy_service.screens', function(require) {
         }); 
         return def;
 
-    }
+    },
 
-
-
-        print_pos_ticket(){
+            print_pos_ticket(){
         
         var def  = new $.Deferred();
         var self = this;
-        var url = this.env.pos.config.proxy_fiscal_printer + '/print_pos_ticket';
+        let pos_config = self.env.services.pos.config;
+        var url = pos_config.proxy_fiscal_printer + '/print_pos_ticket';
         
         console.info('print_pos_ticket url: ', url);
         var data =  {'vals' : JSON.stringify(self.get_values_ticket())};
@@ -88,20 +89,17 @@ odoo.define('pos_proxy_service.screens', function(require) {
         }); 
         return def;
 
-    }
+    },
 
 
-
-
-
-     get_values_ticket(){
+    get_values_ticket(){
         //var order = this.get_order(); 
-        var order = this.env.pos.get_order();    
+        var order = this.pos.get_order();    
         
         var type = this.get_value_type();
         var name = order.get_name();         
         var cliente = this.get_values_client();
-        var order_lines = this.env.pos.get_order().get_orderlines();
+        var order_lines = this.pos.get_order().get_orderlines();
         var items = this.get_values_items();
         var pagos = this.get_values_paymentlines();
         var descuentos = this.get_values_discount();
@@ -118,10 +116,12 @@ odoo.define('pos_proxy_service.screens', function(require) {
         };
         console.info('jsonTemplate: ', jsonTemplate);
         return jsonTemplate;
-    }
+    },
 
 
-        get_value_type(){
+
+
+            get_value_type(){
         //var client = this.get_client();
         //var client =  this.env.pos.get_client();
         var type = 83;
@@ -140,7 +140,8 @@ odoo.define('pos_proxy_service.screens', function(require) {
             }
         }*/
         return type;
-    }
+    },
+
 
 
     get_values_client(){
@@ -195,14 +196,12 @@ odoo.define('pos_proxy_service.screens', function(require) {
             };
         } */
         return {};
-    }
-
-
-
-
+    },
 
     get_values_items(){
-       var order_lines = this.env.pos.get_order().get_orderlines();
+       var order_lines = this.env.services.pos.get_order().get_orderlines();
+       var self = this;
+       let pos_config = self.env.services.pos.config;
        var items = [];
        var type = this.get_value_type();
         /*[
@@ -235,14 +234,14 @@ odoo.define('pos_proxy_service.screens', function(require) {
             if(code_intern == '') code_intern = '11111';
             
             var price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
-            if (this.env.pos.config.version_printer == 'hasar250'){
+            if (pos_config.version_printer == 'hasar250'){
                 price = line.get_all_prices().priceWithTax;
             }
-            else if(this.env.pos.config.version_printer == 'epsont900fa' && type == 83){
+            else if(pos_config.version_printer == 'epsont900fa' && type == 83){
                 console.info('is epson and is ticket');
                 price = line.get_all_prices().priceWithTax / line.quantity;               
             }
-            else if(this.env.pos.config.version_printer == 'epsont900fa' && type != 83){
+            else if(pos_config.version_printer == 'epsont900fa' && type != 83){
                 console.info('is epson and is not ticket');
                 price = line.get_all_prices().priceWithoutTax / line.quantity;
                 
@@ -250,9 +249,9 @@ odoo.define('pos_proxy_service.screens', function(require) {
 
             var product_discount_general = false;
            
-            if ('module_pos_discount' in this.env.pos.config &&  this.env.pos.config.module_pos_discount){
-                console.info('discount_product_id: ', this.env.pos.config.discount_product_id, ' - line.product: ', line.product);
-                if(this.config.discount_product_id &&  this.env.pos.config.discount_product_id[0] == line.product.id && price < 0){
+            if ('module_pos_discount' in pos_config &&  pos_config.module_pos_discount){
+                console.info('discount_product_id: ', pos_config.discount_product_id, ' - line.product: ', line.product);
+                if(this.config.discount_product_id &&  pos_config.discount_product_id[0] == line.product.id && price < 0){
                     product_discount_general = true;
                 }
             }
@@ -271,13 +270,12 @@ odoo.define('pos_proxy_service.screens', function(require) {
             items.push(item_vals);
         }
         return items;
-    }
-
+    },
 
 
 
     get_values_paymentlines(){
-        var paymentlines = this.env.pos.get_order().get_paymentlines();
+        var paymentlines = this.env.services.pos.get_order().get_paymentlines();
         console.info('get_values_paymentlines: ', paymentlines);
         var pagos = [];
          /*[      
@@ -308,11 +306,14 @@ odoo.define('pos_proxy_service.screens', function(require) {
         }
         return pagos;
 
-    }
-    get_values_discount(){
-        var order_lines = this.env.pos.get_order().get_orderlines();
-        var rounding = this.env.pos.currency.rounding;
+    },
+
+       get_values_discount(){
+        var order_lines = this.env.services.pos.get_order().get_orderlines();
+        var rounding = this.env.services.pos.currency.rounding;
         var sum_amount_discount = 0;
+        var round_di = roundDecimals;       // Replaces utils.round_decimals
+        var round_pr = roundPrecision;     // Replaces utils.round_precision
 
         for (var i = 0; i < order_lines.length; i++){
             var line = order_lines[i];
@@ -327,18 +328,15 @@ odoo.define('pos_proxy_service.screens', function(require) {
             {'descripcion' : 'Descuentos', 'monto' : sum_amount_discount, 'tasa_iva' : '', 'codigo_interno' : '', 'codigo_condicion_iva' : ''}
         ];
         return vals;
-    }
+    },
 
-
-
-
-        message_error_printer_fiscal(error){
+            message_error_printer_fiscal(error){
         var self= this;
         if (error != true){
-            Gui.showPopup('ErrorPopup',{
-                'title': 'Error Impresora Fiscal',
-                'body':  error,
-            });
+              this.env.services.pos.popup.add(ErrorPopup, {
+                               title: _t('Error Impresora Fiscal'),
+                               body: _t(error),
+                           });
         }
     }
 
@@ -347,9 +345,10 @@ odoo.define('pos_proxy_service.screens', function(require) {
 
 
 
-        };
 
-    Registries.Component.extend(PaymentScreen, POSValidateOverride);
 
-    return PaymentScreen;
-});
+
+
+
+})
+

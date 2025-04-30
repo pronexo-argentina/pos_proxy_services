@@ -24,7 +24,7 @@
         Proxy para usar odoo con impresoras fiscales Argentinos para Epson / Hasar """,
 
     'description': """
-        Odoo 16 con impresoras Fiscales Epson, Impresor Fiscal Hasar Nueva generacion-
+        Odoo 17 con impresoras Fiscales Epson, Impresor Fiscal Hasar Nueva generacion-
     """,
 
     'author': "Pronexo",
@@ -34,7 +34,7 @@
     # Check https://github.com/odoo/odoo/blob/16.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'Sales/Point of Sale',
-    'version': '16.0.0.0',
+    'version': '17.0.0.0',
     'license': 'OPL-1',
 
     # any module necessary for this one to work correctly
@@ -48,10 +48,8 @@
         'views/pos_config_view.xml',
     ],
     'assets': {
-        'point_of_sale.assets': [
-            'pos_proxy_service/static/src/js/btn_cierres.js',
-            'pos_proxy_service/static/src/js/screen.js',
-            'pos_proxy_service/static/src/xml/**/*',
+        'point_of_sale._assets_pos': [
+            'pos_proxy_service/static/src/**/*',
         ]
     },
     # only loaded in demonstration mode
@@ -61,7 +59,7 @@
 
     'auto_install': False,
     'installable': True,
-    'price': 875,
+    'price': 1275,
     'currency': 'USD',
     'images': ['images/pos-proxy-service-home.png'],
     'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
