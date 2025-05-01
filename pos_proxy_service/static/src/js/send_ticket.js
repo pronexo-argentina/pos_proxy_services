@@ -5,7 +5,7 @@ import { patch } from "@web/core/utils/patch";
 import { ErrorPopup } from "@point_of_sale/app/errors/popups/error_popup";
 import { Order, Orderline, Payment } from "@point_of_sale/app/store/models";
 import { roundDecimals, roundPrecision } from "@web/core/utils/numbers";
-
+import { _t } from "@web/core/l10n/translation";
 
 const { onMounted } = owl
 
@@ -94,12 +94,12 @@ patch(ReceiptScreen.prototype, {
 
     get_values_ticket(){
         //var order = this.get_order(); 
-        var order = this.pos.get_order();    
+        var order = this.env.services.pos.get_order();    
         
         var type = this.get_value_type();
         var name = order.get_name();         
         var cliente = this.get_values_client();
-        var order_lines = this.pos.get_order().get_orderlines();
+        var order_lines = this.env.services.pos.get_order().get_orderlines();
         var items = this.get_values_items();
         var pagos = this.get_values_paymentlines();
         var descuentos = this.get_values_discount();
@@ -121,41 +121,43 @@ patch(ReceiptScreen.prototype, {
 
 
 
-            get_value_type(){
-        //var client = this.get_client();
-        //var client =  this.env.pos.get_client();
+        get_value_type(){
+       
+        var order = this.env.services.pos.get_order();
+        var responsibilityType = order.partner.l10n_ar_afip_responsibility_type_id[1];
+        //var client = order.get_client();
+        console.info("client:");
+        console.info(responsibilityType);
+        console.info("client: fin");
         var type = 83;
-        /* if(client){
-            var company_type_afip_monotributo = false;
-            if (this.company.l10n_ar_afip_responsibility_type_id && this.company.l10n_ar_afip_responsibility_type_id[1] == 'Responsable Monotributo'){
-                company_type_afip_monotributo = true;
-            }
-            if (client.l10n_ar_afip_responsibility_type_id && !company_type_afip_monotributo){
-                if(client.l10n_ar_afip_responsibility_type_id[1] == 'IVA Responsable Inscripto') type = 81; //Factura A
-                else if(client.l10n_ar_afip_responsibility_type_id[1] == 'Responsable Monotributo') type = 111;//Factura C
-                else if(client.l10n_ar_afip_responsibility_type_id[1] == 'Consumidor Final' || client.l10n_ar_afip_responsibility_type_id[1] == 'IVA Sujeto Exento') type = 82;//Factura B
-            }
-            else if(company_type_afip_monotributo){
-                type = 111;
-            }
-        }*/
+        if(responsibilityType){
+            console.info("if client: fin");
+                if(responsibilityType == 'IVA Responsable Inscripto') type = 81; //Factura A
+                else if(responsibilityType == 'Responsable Monotributo') type = 111;//Factura C
+                else if(responsibilityType == 'IVA Sujeto Exento') type = 82;//Factura B
+            
+                console.info(type);
+
+        }
         return type;
     },
 
 
 
     get_values_client(){
-        //var client = this.get_client();
-       /* var client =  this.env.pos.get_client();
-        //console.info('get_values_ticket: ', client);
-        if (client){
+        var order = this.env.services.pos.get_order();
+        var responsibilityType = order.partner.l10n_ar_afip_responsibility_type_id[1];
+        var identificationType = order.partner.l10n_latam_identification_type_id[1];
+        
+        
+        if (responsibilityType){
             var id_responsabilidad_iva = 'E';
-            if (client.l10n_ar_afip_responsibility_type_id){
-                if(client.l10n_ar_afip_responsibility_type_id[1] == 'IVA Responsable Inscripto') id_responsabilidad_iva = 'I'; 
-                else if(client.l10n_ar_afip_responsibility_type_id[1] == 'Responsable Monotributo') id_responsabilidad_iva = 'M';
-                else if(client.l10n_ar_afip_responsibility_type_id[1] == 'Consumidor Final') id_responsabilidad_iva = 'F';
-                else if(client.l10n_ar_afip_responsibility_type_id[1] == 'IVA Sujeto Exento') id_responsabilidad_iva = 'E';
-            }
+            
+                if(responsibilityType == 'IVA Responsable Inscripto') id_responsabilidad_iva = 'I'; 
+                else if(responsibilityType == 'Responsable Monotributo') id_responsabilidad_iva = 'M';
+                else if(responsibilityType == 'Consumidor Final') id_responsabilidad_iva = 'F';
+                else if(responsibilityType == 'IVA Sujeto Exento') id_responsabilidad_iva = 'E';
+            
             /*id_tipo_documento = {
                 'D' : 'DNI' , 
                 'L' : 'CUIL' , 
@@ -165,23 +167,23 @@ patch(ReceiptScreen.prototype, {
                 'V' : 'Libreta Cívica' , 
                 'E' : 'Libreta de Enrolamiento '
             } */
-            /*var id_tipo_documento = 'T';
-            if (client.l10n_latam_identification_type_id){
+            var id_tipo_documento = 'T';
+            if (identificationType){
 
-                if(client.l10n_latam_identification_type_id[1] == 'CUIT') id_tipo_documento = 'T';
-                if(client.l10n_latam_identification_type_id[1] == 'DNI') id_tipo_documento = 'D';
-                if(client.l10n_latam_identification_type_id[1] == 'CUIL') id_tipo_documento = 'L';
-                if(client.l10n_latam_identification_type_id[1] == 'Pasaporte') id_tipo_documento = 'P';
+                if(identificationType == 'CUIT') id_tipo_documento = 'T';
+                if(identificationType == 'DNI') id_tipo_documento = 'D';
+                if(identificationType == 'CUIL') id_tipo_documento = 'L';
+                if(identificationType == 'Pasaporte') id_tipo_documento = 'P';
                 //if(client.l10n_latam_identification_type_id[1] == 'PAS') id_tipo_documento = 'P';
             }
             var street = '';
             var city = '';
             var vat = '';
-            if (client.street) street = client.street;
-            if(client.city) city = client.city;
-            if(client.vat) vat = client.vat;
+            if (order.partner.street) street = order.partner.street;
+            if(order.partner.city) city = order.partner.city;
+            if(order.partner.vat) vat = order.partner.vat;
             return {
-                'nombre_o_razon_social1' : client.name,
+                'nombre_o_razon_social1' : order.partner.name,
                 'nombre_o_razon_social2' : '',
                 'domicilio1' : street,
                 'domicilio2' : city,
@@ -194,7 +196,7 @@ patch(ReceiptScreen.prototype, {
                 'documento_asociado3' : '',
                 'cheque_reintegro_turista' : ''
             };
-        } */
+        } 
         return {};
     },
 
