@@ -24,7 +24,7 @@
         Proxy para usar odoo con impresoras fiscales Argentinos para Epson """,
 
     'description': """
-        Odoo 17 con impresoras Fiscales Epson, Impresor Fiscal Hasar Nueva generacion-
+        Odoo 17 con impresoras Fiscales Epson, nueva generacion-
     """,
 
     'author': "Pronexo",
