@@ -21,7 +21,7 @@
     'name': "Pos Proxy Services",
 
     'summary': """
-        Proxy para usar odoo con impresoras fiscales Argentinos para Epson / Hasar """,
+        Proxy para usar odoo con impresoras fiscales Argentinos para Epson """,
 
     'description': """
         Odoo 17 con impresoras Fiscales Epson, Impresor Fiscal Hasar Nueva generacion-
@@ -29,10 +29,6 @@
 
     'author': "Pronexo",
     'website': "https://www.pronexo.com",
-
-    # Categories can be used to filter modules in modules listing
-    # Check https://github.com/odoo/odoo/blob/16.0/odoo/addons/base/data/ir_module_category_data.xml
-    # for the full list
     'category': 'Sales/Point of Sale',
     'version': '17.0.0.0',
     'license': 'OPL-1',
@@ -59,7 +55,7 @@
 
     'auto_install': False,
     'installable': True,
-    'price': 1275,
+    'price': 1200,
     'currency': 'USD',
     'images': ['images/pos-proxy-service-home.png'],
     'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'
