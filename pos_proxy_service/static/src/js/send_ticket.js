@@ -61,7 +61,7 @@ patch(ReceiptScreen.prototype, {
 
     },
 
-            print_pos_ticket(){
+    print_pos_ticket(){
         
         var def  = new $.Deferred();
         var self = this;
@@ -93,9 +93,7 @@ patch(ReceiptScreen.prototype, {
 
 
     get_values_ticket(){
-        //var order = this.get_order(); 
         var order = this.env.services.pos.get_order();    
-        
         var type = this.get_value_type();
         var name = order.get_name();         
         var cliente = this.get_values_client();
@@ -121,11 +119,10 @@ patch(ReceiptScreen.prototype, {
 
 
 
-        get_value_type(){
+    get_value_type(){
        
         var order = this.env.services.pos.get_order();
         var responsibilityType = order.partner.l10n_ar_afip_responsibility_type_id[1];
-        //var client = order.get_client();
         console.info("client:");
         console.info(responsibilityType);
         console.info("client: fin");
@@ -174,7 +171,7 @@ patch(ReceiptScreen.prototype, {
                 if(identificationType == 'DNI') id_tipo_documento = 'D';
                 if(identificationType == 'CUIL') id_tipo_documento = 'L';
                 if(identificationType == 'Pasaporte') id_tipo_documento = 'P';
-                //if(client.l10n_latam_identification_type_id[1] == 'PAS') id_tipo_documento = 'P';
+                
             }
             var street = '';
             var city = '';
@@ -310,7 +307,9 @@ patch(ReceiptScreen.prototype, {
 
     },
 
-       get_values_discount(){
+    
+
+    get_values_discount(){
         var order_lines = this.env.services.pos.get_order().get_orderlines();
         var rounding = this.env.services.pos.currency.rounding;
         var sum_amount_discount = 0;
@@ -332,7 +331,8 @@ patch(ReceiptScreen.prototype, {
         return vals;
     },
 
-            message_error_printer_fiscal(error){
+    
+    message_error_printer_fiscal(error){
         var self= this;
         if (error != true){
               this.env.services.pos.popup.add(ErrorPopup, {
@@ -341,10 +341,6 @@ patch(ReceiptScreen.prototype, {
                            });
         }
     }
-
-
-
-
 
 
 
