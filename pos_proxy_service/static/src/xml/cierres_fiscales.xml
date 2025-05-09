@@ -2,9 +2,11 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_proxy_service.ControlButtons" t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension">
         <xpath expr="//t[@t-if='props.showRemainingButtons']/div/OrderlineNoteButton" position="after">
+            <t t-if="this.pos.config.use_fiscal_printer">
              <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.onClick()">
                  <i class="fa fa-pencil-square me-1" role="img" aria-label="Custom Alert" title="Custom Alert"/>CF
              </button>
+         </t>
         </xpath>
     </t>
 </templates>
