@@ -2,10 +2,12 @@
 
 import { ReceiptScreen } from "@point_of_sale/app/screens/receipt_screen/receipt_screen";
 import { patch } from "@web/core/utils/patch";
-import { ErrorPopup } from "@point_of_sale/app/errors/popups/error_popup";
-import { Order, Orderline, Payment } from "@point_of_sale/app/store/models";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { roundDecimals, roundPrecision } from "@web/core/utils/numbers";
 import { _t } from "@web/core/l10n/translation";
+import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
+
+
 
 const { onMounted } = owl
 
@@ -32,7 +34,7 @@ patch(ReceiptScreen.prototype, {
 
     },
 
-    async state_printer(){
+    /*async state_printer(){
         
         var def  = new $.Deferred();
         var self = this;
@@ -59,143 +61,196 @@ patch(ReceiptScreen.prototype, {
         }); 
         return def;
 
-    },
+    },*/
 
-    print_pos_ticket(){
-        
-        var def  = new $.Deferred();
-        var self = this;
-        let pos_config = self.env.services.pos.config;
-        var url = pos_config.proxy_fiscal_printer + '/print_pos_ticket';
-        
-        console.info('print_pos_ticket url: ', url);
-        var data =  {'vals' : JSON.stringify(self.get_values_ticket())};
-        var print_fiscal_proxy = $.ajax({
-            type: "GET",             
+    async state_printer() {
+    try {
+        const url = this.pos.config.proxy_fiscal_printer + '/state_printer';
+        const response = await fetch(url, { method: "GET", timeout: 10000 });
+        const res = await response.json();
+        console.info("state_printer res:", res);
+        this.message_error_printer_fiscal(res.response);
+        return res;
+    } catch (error) {
+        this.message_error_printer_fiscal("Comunicación fallida con el Proxy");
+        throw error;
+    }
+},
+
+ print_pos_ticket() {
+    const self = this;
+    const pos_config = this.env.services.pos.config;
+    const url = pos_config.proxy_fiscal_printer + '/print_pos_ticket';
+    
+    console.info('print_pos_ticket url: ', url);
+    
+    const data = { vals: JSON.stringify(this.get_values_ticket()) };
+    
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            type: "GET",
             url: url,
-            data : data,
-            timeout:10000000
+            data: data,
+            timeout: 10000000
+        })
+        .done(function(res) {
+            console.info('print_pos_ticket res new: ', res);
+            self.message_error_printer_fiscal(res['response']);
+            resolve(res);
+        })
+        .fail(function(xhr, textStatus, errorThrown) {
+            self.message_error_printer_fiscal('Comunicación fallida con el Proxy');
+            reject(errorThrown);
+        });
+    });
+},
+
+   async print_pos_ticket2() {
+    const pos = this.env.services.pos;
+    const config = pos.config;
+    const url = `${config.proxy_fiscal_printer}/print_pos_ticket`;
+
+    console.info('print_pos_ticket url:', url);
+
+    const data = {
+        vals: JSON.stringify(this.get_values_ticket()),
+    };
+
+    try {
+        const queryParams = new URLSearchParams(data).toString();
+        const fullUrl = `${url}?${queryParams}`;
+        
+        const response = await fetch(fullUrl, {
+            method: 'GET',
+            timeout: 10000,  // fetch no soporta timeout directo (ver nota abajo)
         });
 
-        print_fiscal_proxy.done(function(res){              
-          console.info('print_pos_ticket res new: ', res);    
-          def.resolve(res);      
-          self.message_error_printer_fiscal(res['response'])
-          
-         
-        }).fail(function(xhr, textStatus, errorThrown){  
-          self.message_error_printer_fiscal('Comunicación fallida con el Proxy')
-          def.reject();
-        }); 
-        return def;
-
-    },
-
-
-    get_values_ticket(){
-        var order = this.env.services.pos.get_order();    
-        var type = this.get_value_type();
-        var name = order.get_name();         
-        var cliente = this.get_values_client();
-        var order_lines = this.env.services.pos.get_order().get_orderlines();
-        var items = this.get_values_items();
-        var pagos = this.get_values_paymentlines();
-        var descuentos = this.get_values_discount();
-        //console.info('pagos: ', pagos);
-        var jsonTemplate = {
-            'name': name,
-            'type': type, 
-            'cliente' :cliente,
-            'items' :items,
-            'pagos':pagos,
-            'descuentos': descuentos,
-            'ajustes': []// {'descripcion' : 'Ajuste 0.2', 'monto' : 0.2, 'tasa_iva' : '', 'codigo_interno' : '', 'codigo_condicion_iva' : ''} ]
-
-        };
-        console.info('jsonTemplate: ', jsonTemplate);
-        return jsonTemplate;
-    },
-
-
-
-
-    get_value_type(){
-       
-        var order = this.env.services.pos.get_order();
-        var responsibilityType = order.partner.l10n_ar_afip_responsibility_type_id[1];
-        console.info("client:");
-        console.info(responsibilityType);
-        console.info("client: fin");
-        var type = 83;
-        if(responsibilityType){
-            console.info("if client: fin");
-                if(responsibilityType == 'IVA Responsable Inscripto') type = 81; //Factura A
-                else if(responsibilityType == 'Responsable Monotributo') type = 111;//Factura C
-                else if(responsibilityType == 'IVA Sujeto Exento') type = 82;//Factura B
-            
-                console.info(type);
-
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
         }
-        return type;
-    },
+
+        const result = await response.json();
+        console.info("Respuesta del proxy fiscal:", result);
+        return result;
+
+    } catch (error) {
+        console.error("Error al imprimir fiscal:", error);
+        throw error;
+    }
+},
 
 
 
-    get_values_client(){
-        var order = this.env.services.pos.get_order();
-        var responsibilityType = order.partner.l10n_ar_afip_responsibility_type_id[1];
-        var identificationType = order.partner.l10n_latam_identification_type_id[1];
-        
-        
-        if (responsibilityType){
-            var id_responsabilidad_iva = 'E';
-            
-                if(responsibilityType == 'IVA Responsable Inscripto') id_responsabilidad_iva = 'I'; 
-                else if(responsibilityType == 'Responsable Monotributo') id_responsabilidad_iva = 'M';
-                else if(responsibilityType == 'Consumidor Final') id_responsabilidad_iva = 'F';
-                else if(responsibilityType == 'IVA Sujeto Exento') id_responsabilidad_iva = 'E';
-            
-            /*id_tipo_documento = {
-                'D' : 'DNI' , 
-                'L' : 'CUIL' , 
-                'T' : 'CUIT' , 
-                'C' : 'Cédula de Identidad' ,
-                'P' : 'Pasaporte' , 
-                'V' : 'Libreta Cívica' , 
-                'E' : 'Libreta de Enrolamiento '
-            } */
-            var id_tipo_documento = 'T';
-            if (identificationType){
+get_values_ticket() {
+    //const order = this.env.services.pos.get_order();
+    const order = this.pos.get_order();
+    if (!order) return {};
 
-                if(identificationType == 'CUIT') id_tipo_documento = 'T';
-                if(identificationType == 'DNI') id_tipo_documento = 'D';
-                if(identificationType == 'CUIL') id_tipo_documento = 'L';
-                if(identificationType == 'Pasaporte') id_tipo_documento = 'P';
-                
-            }
-            var street = '';
-            var city = '';
-            var vat = '';
-            if (order.partner.street) street = order.partner.street;
-            if(order.partner.city) city = order.partner.city;
-            if(order.partner.vat) vat = order.partner.vat;
-            return {
-                'nombre_o_razon_social1' : order.partner.name,
-                'nombre_o_razon_social2' : '',
-                'domicilio1' : street,
-                'domicilio2' : city,
-                'domicilio3' : '',
-                'id_tipo_documento' : id_tipo_documento,
-                'numero_documento' : vat,
-                'id_responsabilidad_iva' : id_responsabilidad_iva,
-                'documento_asociado1' : '',
-                'documento_asociado2' : '',
-                'documento_asociado3' : '',
-                'cheque_reintegro_turista' : ''
-            };
-        } 
-        return {};
-    },
+    const type = this.get_value_type();
+    console.info("name:");
+    //const name = order.get_name();
+    const name = order.pos_reference;
+    console.info(name);
+    const cliente = this.get_values_client();
+    const items = this.get_values_items();
+    const pagos = this.get_values_paymentlines();
+    const descuentos = this.get_values_discount();
+
+    const jsonTemplate = {
+        name: name || '',
+        type: type,
+        cliente: cliente,
+        items: items,
+        pagos: pagos,
+        descuentos: descuentos,
+        ajustes: [] // Placeholder para futuros ajustes fiscales
+    };
+
+    console.info('jsonTemplate:', jsonTemplate);
+    return jsonTemplate;
+},
+
+
+
+
+   get_value_type() {
+    const order = this.env.services.pos.get_order();
+    const partner = order?.partner_id;
+    console.info("partner:");
+    console.info(partner.l10n_ar_afip_responsibility_type_id.name);
+    //const responsibilityType = partner?.l10n_ar_afip_responsibility_type_id.name?.[1];
+    const responsibilityType = partner.l10n_ar_afip_responsibility_type_id.name;
+
+    console.info("client responsibility:", responsibilityType);
+
+    let type = 83; // Default: Consumidor Final (Factura B)
+
+    if (responsibilityType) {
+        if (responsibilityType === 'IVA Responsable Inscripto') {
+            type = 81; // Factura A
+        } else if (responsibilityType === 'Responsable Monotributo') {
+            type = 111; // Factura C
+        } else if (responsibilityType === 'IVA Sujeto Exento') {
+            type = 82; // Factura B
+        }
+    }
+
+    console.info("Tipo comprobante fiscal:", type);
+    return type;
+},
+
+
+
+    get_values_client() {
+    const order = this.env.services.pos.get_order();
+    const partner = order?.partner_id;
+
+    if (!partner) return {};
+
+    const responsibilityType = partner.l10n_ar_afip_responsibility_type_id.name;
+    const identificationType = partner.l10n_latam_identification_type_id.name;
+
+     console.info("partner2:");
+    console.info(responsibilityType);
+    console.info("identification:");
+    console.info(identificationType);
+
+    let id_responsabilidad_iva = 'E';  // Default: Exento
+    if (responsibilityType) {
+        if (responsibilityType === 'IVA Responsable Inscripto') {
+            id_responsabilidad_iva = 'I';
+        } else if (responsibilityType === 'Responsable Monotributo') {
+            id_responsabilidad_iva = 'M';
+        } else if (responsibilityType === 'Consumidor Final') {
+            id_responsabilidad_iva = 'F';
+        } else if (responsibilityType === 'IVA Sujeto Exento') {
+            id_responsabilidad_iva = 'E';
+        }
+    }
+
+    let id_tipo_documento = 'T'; // Default: CUIT
+    if (identificationType) {
+        if (identificationType === 'CUIT') id_tipo_documento = 'T';
+        else if (identificationType === 'DNI') id_tipo_documento = 'D';
+        else if (identificationType === 'CUIL') id_tipo_documento = 'L';
+        else if (identificationType === 'Pasaporte') id_tipo_documento = 'P';
+    }
+
+    return {
+        nombre_o_razon_social1: partner.name || '',
+        nombre_o_razon_social2: '',
+        domicilio1: partner.street || '',
+        domicilio2: partner.city || '',
+        domicilio3: '',
+        id_tipo_documento: id_tipo_documento,
+        numero_documento: partner.vat || '',
+        id_responsabilidad_iva: id_responsabilidad_iva,
+        documento_asociado1: '',
+        documento_asociado2: '',
+        documento_asociado3: '',
+        cheque_reintegro_turista: ''
+    };
+},
 
     get_values_items(){
        var order_lines = this.env.services.pos.get_order().get_orderlines();
@@ -213,7 +268,9 @@ patch(ReceiptScreen.prototype, {
             //]
         for (var i = 0; i < order_lines.length; i++) {
             var line = order_lines[i];
-            var taxes = line.get_taxes();
+            var taxes = line.get_product().taxes_id || [];
+            console.info("taxes:");
+            console.info(taxes);
             var iva = 0; //Tasa de iva ninguno
             var code_intern = '';
             var unit_measure = 0;//Sin unidad de medida
@@ -221,14 +278,16 @@ patch(ReceiptScreen.prototype, {
             for (var k = 0; k < taxes.length; k++){
                 if (taxes[k]){
                     iva = taxes[k].amount;
+                    console.info("IVA:");
+                    console.info(iva);
                     break;
                 }
             }
 
             var uom = line.get_unit()
             if (uom) unit_measure = parseInt(uom.afip_uom);
-            if(line.product.barcode) code_intern = line.product.barcode;
-            else if(line.product.default_code) code_intern = line.product.default_code;
+            if(line.get_product().barcode) code_intern = line.get_product().barcode;
+            else if(line.get_product().default_code) code_intern = line.get_product().default_code;
 
             if(code_intern == '') code_intern = '11111';
             
@@ -249,14 +308,14 @@ patch(ReceiptScreen.prototype, {
             var product_discount_general = false;
            
             if ('module_pos_discount' in pos_config &&  pos_config.module_pos_discount){
-                console.info('discount_product_id: ', pos_config.discount_product_id, ' - line.product: ', line.product);
-                if(this.config.discount_product_id &&  pos_config.discount_product_id[0] == line.product.id && price < 0){
+                console.info('discount_product_id: ', pos_config.discount_product_id, ' - line.product: ', line.get_product());
+                if(this.config.discount_product_id &&  pos_config.discount_product_id[0] == line.get_product().id && price < 0){
                     product_discount_general = true;
                 }
             }
             
             var item_vals = {
-                'description' : line.product.display_name,
+                'description' : line.get_product().display_name,
                 'description_extra1' : '',
                 'qty' : line.quantity,
                 'price' : price,
@@ -274,7 +333,8 @@ patch(ReceiptScreen.prototype, {
 
 
     get_values_paymentlines(){
-        var paymentlines = this.env.services.pos.get_order().get_paymentlines();
+        
+        var paymentlines = this.env.services.pos.get_order().payment_ids;
         console.info('get_values_paymentlines: ', paymentlines);
         var pagos = [];
          /*[      
@@ -335,10 +395,11 @@ patch(ReceiptScreen.prototype, {
     message_error_printer_fiscal(error){
         var self= this;
         if (error != true){
-              this.env.services.pos.popup.add(ErrorPopup, {
-                               title: _t('Error Impresora Fiscal'),
-                               body: _t(error),
-                           });
+          const { popup } = this.env.services;
+        this.dialog.add(AlertDialog, {
+            title: _t("Error"),
+            body: _t("Comunicación fallida con el Proxy."),
+        });
         }
     }
 

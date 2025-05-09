@@ -1,22 +1,12 @@
-/** @odoo-module */
-
-import { usePos } from "@point_of_sale/app/store/pos_hook";
-import { ProductScreen } from "@point_of_sale/app/screens/product_screen/product_screen";
-import { Component } from "@odoo/owl";
+/**@odoo-module **/
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { SelectionPopup } from "@point_of_sale/app/utils/input_popups/selection_popup";
-import { ErrorPopup } from "@point_of_sale/app/errors/popups/error_popup";
+import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { _t } from "@web/core/l10n/translation";
+import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
 import { patch } from "@web/core/utils/patch";
-
-
-export class CierresFButton extends Component {
-    static template = "pos_proxy_service.CierresFiscalesButton";
-
-         setup() {
-            super.setup();
-            usePos('click', this.onClick);
-        }
-        async onClick() {
+patch(ControlButtons.prototype, {
+  async onClick() {
         var listaCierres = [];
 
             listaCierres.push({
@@ -34,8 +24,7 @@ export class CierresFButton extends Component {
 
 
 
-
-              const { confirmed, payload: seleccioncierre } = await this.env.services.popup.add(SelectionPopup, {
+              const payload = await makeAwaitable(this.dialog, SelectionPopup, {
                title: _t('Selecciona X Parcial o Z Cierre'),
                list: listaCierres,
 
@@ -43,11 +32,11 @@ export class CierresFButton extends Component {
         
 
 
-                if (confirmed) {
-                    console.info(seleccioncierre);
+                if (payload) {
+                    console.info(payload);
 
 
-                    if (seleccioncierre == 'z'){
+                    if (payload == 'z'){
                     var con = confirm("¿Esta seguro de imprimir cierre Z?");
                     if (!con){
                         return;
@@ -56,61 +45,50 @@ export class CierresFButton extends Component {
 
 
 
-                //var response = this.env.pos.print_pos_fiscal_close(seleccioncierre);
-                var response = this.print_pos_fiscal_close(seleccioncierre);
+                var response = this.print_pos_fiscal_close(payload);
                 }
-    }
+    },
 
 
+   
 
-
-            async print_pos_fiscal_close(type){
-        
-        var def  = new $.Deferred();
-        var self = this;
-        let pos_config = self.env.services.pos.config;
-        var url = pos_config.proxy_fiscal_printer + '/print_pos_fiscal_close';
+        async print_pos_fiscal_close(type) {
+        const posConfig = this.env.services.pos.config;
+        const url = `${posConfig.proxy_fiscal_printer}/print_pos_fiscal_close`;
         console.info('print_pos_fiscal_close url: ', url);
-        var data =  {'type' : type};
-        var print_fiscal_proxy = $.ajax({
-            type: "GET",             
-            url: url,
-            data : data,
-            timeout:100000
-        });
+        const params = new URLSearchParams({ type });
 
-        print_fiscal_proxy.done(function(res){              
-          console.info('print_pos_fiscal_close res: ', res);    
-          def.resolve(res);      
-          self.message_error_printer_fiscal(res['response'])
-          
-         
-        }).fail(function(xhr, textStatus, errorThrown){  
-          self.message_error_printer_fiscal('Comunicación fallida con el Proxy')
-          def.reject();
-        }); 
-        return def;
+        try {
+            const response = await fetch(`${url}?${params.toString()}`, {
+                method: "GET",
+            });
 
-    }
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
 
+            const result = await response.json();
+            console.info("print_pos_fiscal_close res:", result);
 
-           message_error_printer_fiscal(error){
+            this.message_error_printer_fiscal(result.response);
+            return result;
+        } catch (error) {
+            this.message_error_printer_fiscal("Comunicación fallida con el Proxy");
+            throw error;
+        }
+    },
+
+        message_error_printer_fiscal(error){
         var self= this;
         if (error != true){
 
-             this.env.services.pos.popup.add(ErrorPopup, {
-                               title: _t('Error Impresora Fiscal'),
-                               body: _t(error),
-                           });
+        const { popup } = this.env.services;
+        this.dialog.add(AlertDialog, {
+            title: _t("Error"),
+            body: _t("Comunicación fallida con el Proxy."),
+        });
         }
     }
-}
 
-ProductScreen.addControlButton({
-    component: CierresFButton,
-    condition: function () {
-        var self = this;
-        let pos_config = self.env.services.pos.config;
-        return pos_config.use_fiscal_printer;
-    },
+
 });

@@ -24,13 +24,13 @@
         Proxy para usar odoo con impresoras fiscales Argentinos para Epson """,
 
     'description': """
-        Odoo 17 con impresoras Fiscales Epson, nueva generacion-
+        Odoo 18 con impresoras Fiscales Epson Nueva generacion-
     """,
 
     'author': "Pronexo",
     'website': "https://www.pronexo.com",
     'category': 'Sales/Point of Sale',
-    'version': '17.0.0.0',
+    'version': '18.0.0.0',
     'license': 'OPL-1',
 
     # any module necessary for this one to work correctly
@@ -38,7 +38,6 @@
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
         'views/uom_view.xml',
         'views/pos_payment_method_view.xml',
         'views/pos_config_view.xml',
