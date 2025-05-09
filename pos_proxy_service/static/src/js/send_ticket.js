@@ -34,34 +34,6 @@ patch(ReceiptScreen.prototype, {
 
     },
 
-    /*async state_printer(){
-        
-        var def  = new $.Deferred();
-        var self = this;
-        let pos_config = self.env.services.pos.config;
-        var url = pos_config.proxy_fiscal_printer + '/state_printer';
-    
-    
-        var print_fiscal_proxy = $.ajax({
-            type: "GET",             
-            url: url,
-           
-            timeout:100000
-        });
-
-        print_fiscal_proxy.done(function(res){              
-          console.info('state_printer res new: ', res);    
-          def.resolve(res);      
-          self.message_error_printer_fiscal(res['response'])
-          
-         
-        }).fail(function(xhr, textStatus, errorThrown){  
-          self.message_error_printer_fiscal('Comunicación fallida con el Proxy')
-          def.reject();
-        }); 
-        return def;
-
-    },*/
 
     async state_printer() {
     try {
@@ -261,14 +233,7 @@ get_values_items() {
         // Precio según versión de impresora y tipo de ticket
         let price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
 
-        console.info("IMPRIMO PRECIO1");
-            console.info(price);
-
         const all_prices = line.get_all_prices();
-        console.info("imprimo precio 2");
-        console.info(all_prices.priceWithTax);
-        console.info("line.quantity::::");
-        console.info(line.get_quantity());
         if (pos_config.version_printer === 'hasar250') {
             price = all_prices.priceWithTax;
         } else if (pos_config.version_printer === 'epsont900fa') {
@@ -281,8 +246,7 @@ get_values_items() {
             }
         }
 
-        console.info("IMPRIMO PRECIO3");
-            console.info(price);
+
 
         // Descuento general aplicado como producto
         let product_discount_general = false;
@@ -312,175 +276,6 @@ get_values_items() {
     return items;
 },
 
-get_values_items1() {
-    const order_lines = this.env.services.pos.get_order().get_orderlines();
-    const pos_config = this.env.services.pos.config;
-    const type = this.get_value_type();
-    const items = [];
-
-    for (const line of order_lines) {
-        const product = line.get_product();
-        const taxes = product.taxes_id || [];
-        let iva = 0;
-        let code_intern = '';
-        let unit_measure = '0';
-
-        if (taxes.length) {
-            iva = taxes[0].amount || 0;
-            console.info("IVA:", iva);
-        }
-
-        const uom = line.get_unit();
-        if (uom && uom.afip_uom) {
-            unit_measure = String(parseInt(uom.afip_uom));
-        }
-
-        if (product.barcode) {
-            code_intern = product.barcode;
-        } else if (product.default_code) {
-            code_intern = product.default_code;
-        } else {
-            code_intern = '11111';
-        }
-
-       
-
-        let price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
-
-        console.info("IMPRIMO PRECIO1");
-            console.info(price);
-
-        if (pos_config.version_printer === 'hasar250') {
-            price = line.get_all_prices().priceWithTax;
-            console.info("IMPRIMO PRECIO2");
-            console.info(price);
-        } else if (pos_config.version_printer === 'epsont900fa') {
-            const all_prices = line.get_all_prices();
-            console.info("IMPRIMO PRECIO3");
-            console.info(price);
-            if (type === 83) {
-                console.info('is epson and is ticket');
-                price = all_prices.priceWithTax / line.quantity;
-            } else {
-                console.info('is epson and is not ticket');
-                price = all_prices.priceWithoutTax / line.quantity;
-            }
-        }
-
-        console.info("IMPRIMO PRECIO3");
-            console.info(price);
-
-        let product_discount_general = false;
-
-        if (pos_config.module_pos_discount) {
-            const is_discount_product = (
-                this.config.discount_product_id &&
-                pos_config.discount_product_id[0] === product.id &&
-                price < 0
-            );
-            if (is_discount_product) {
-                product_discount_general = true;
-            }
-        }
-
-        const item_vals = {
-            description: product.display_name,
-            description_extra1: '',
-            qty: line.quantity,
-            price: price,
-            iva: iva,
-            unit_measure: unit_measure,
-            code_intern: code_intern,
-            product_discount_general: product_discount_general
-        };
-
-        items.push(item_vals);
-    }
-
-    return items;
-},
-
-
-    get_values_items2(){
-       var order_lines = this.env.services.pos.get_order().get_orderlines();
-       var self = this;
-       let pos_config = self.env.services.pos.config;
-       var items = [];
-       var type = this.get_value_type();
-        /*[
-                {'description' : 'Lenovo Idpad', 'description_extra1' : 'I7', 'qty' : 1, 'price' : 0.05, 'iva' : 21, 
-                'unit_measure' : '7', 'code_intern' : 'pl758'},
-                /*{'description' : 'Mouse Optico Logitech', 'description_extra1' : 'Af56', 'qty' : 1, 'price' : 0.03, 'iva' : 21, 
-                'unit_measure' : '7', 'code_intern' : 'LP'},
-                {'description' : 'Audifonos Logitech', 'description_extra1' : 'kk7', 'qty' : 1, 'price' : 0.05, 'iva' : 21, 
-                'unit_measure' : '7', 'code_intern' : 'pl758'}*/
-            //]
-        for (var i = 0; i < order_lines.length; i++) {
-            var line = order_lines[i];
-            var taxes = line.get_product().taxes_id || [];
-            console.info("taxes:");
-            console.info(taxes);
-            var iva = 0; //Tasa de iva ninguno
-            var code_intern = '';
-            var unit_measure = 0;//Sin unidad de medida
-            
-            for (var k = 0; k < taxes.length; k++){
-                if (taxes[k]){
-                    iva = taxes[k].amount;
-                    console.info("IVA:");
-                    console.info(iva);
-                    break;
-                }
-            }
-
-            var uom = line.get_unit()
-            if (uom) unit_measure = parseInt(uom.afip_uom);
-            if(line.get_product().barcode) code_intern = line.get_product().barcode;
-            else if(line.get_product().default_code) code_intern = line.get_product().default_code;
-
-            if(code_intern == '') code_intern = '11111';
-            
-            var price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
-            if (pos_config.version_printer == 'hasar250'){
-                price = line.get_all_prices().priceWithTax;
-            }
-            else if(pos_config.version_printer == 'epsont900fa' && type == 83){
-                console.info('is epson and is ticket');
-                price = line.get_all_prices().priceWithTax / line.quantity;               
-            }
-            else if(pos_config.version_printer == 'epsont900fa' && type != 83){
-                console.info('is epson and is not ticket');
-                price = line.get_all_prices().priceWithoutTax / line.quantity;
-                
-            }
-
-            console.info("IMPRIMO PRECIO");
-            console.info(price);
-
-            var product_discount_general = false;
-           
-            if ('module_pos_discount' in pos_config &&  pos_config.module_pos_discount){
-                console.info('discount_product_id: ', pos_config.discount_product_id, ' - line.product: ', line.get_product());
-                if(this.config.discount_product_id &&  pos_config.discount_product_id[0] == line.get_product().id && price < 0){
-                    product_discount_general = true;
-                }
-            }
-            
-            var item_vals = {
-                'description' : line.get_product().display_name,
-                'description_extra1' : '',
-                'qty' : line.get_product().quantity,
-                'price' : price,
-                'iva' : iva,
-                'unit_measure' : String(unit_measure),
-                'code_intern' : code_intern,
-                'product_discount_general' : product_discount_general
-
-            };
-            items.push(item_vals);
-        }
-        return items;
-    },
 
 
 
