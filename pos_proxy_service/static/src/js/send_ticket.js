@@ -77,67 +77,39 @@ patch(ReceiptScreen.prototype, {
     }
 },
 
- print_pos_ticket() {
-    const self = this;
+
+async print_pos_ticket() {
     const pos_config = this.env.services.pos.config;
-    const url = pos_config.proxy_fiscal_printer + '/print_pos_ticket';
-    
+    const url = `${pos_config.proxy_fiscal_printer}/print_pos_ticket`;
+
     console.info('print_pos_ticket url: ', url);
-    
-    const data = { vals: JSON.stringify(this.get_values_ticket()) };
-    
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            type: "GET",
-            url: url,
-            data: data,
-            timeout: 10000000
-        })
-        .done(function(res) {
-            console.info('print_pos_ticket res new: ', res);
-            self.message_error_printer_fiscal(res['response']);
-            resolve(res);
-        })
-        .fail(function(xhr, textStatus, errorThrown) {
-            self.message_error_printer_fiscal('Comunicación fallida con el Proxy');
-            reject(errorThrown);
-        });
-    });
-},
-
-   async print_pos_ticket2() {
-    const pos = this.env.services.pos;
-    const config = pos.config;
-    const url = `${config.proxy_fiscal_printer}/print_pos_ticket`;
-
-    console.info('print_pos_ticket url:', url);
 
     const data = {
-        vals: JSON.stringify(this.get_values_ticket()),
+        vals: JSON.stringify(this.get_values_ticket())
     };
 
+      //console.info("imprimiendo url");
+      //console.info(data);
+
     try {
-        const queryParams = new URLSearchParams(data).toString();
-        const fullUrl = `${url}?${queryParams}`;
-        
-        const response = await fetch(fullUrl, {
-            method: 'GET',
-            timeout: 10000,  // fetch no soporta timeout directo (ver nota abajo)
+        const queryString = new URLSearchParams(data).toString();
+        const response = await fetch(`${url}?${queryString}`, {
+            method: "GET",
+            timeout: 10000000, // Este campo no tiene efecto con fetch
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
+        const res = await response.json();
+        console.info('print_pos_ticket res new: ', res);
 
-        const result = await response.json();
-        console.info("Respuesta del proxy fiscal:", result);
-        return result;
+        this.message_error_printer_fiscal(res['response']);
+        return res;
 
     } catch (error) {
-        console.error("Error al imprimir fiscal:", error);
+        this.message_error_printer_fiscal('Comunicación fallida con el Proxy');
         throw error;
     }
 },
+
 
 
 
@@ -251,8 +223,185 @@ get_values_ticket() {
         cheque_reintegro_turista: ''
     };
 },
+get_values_items() {
+    const order_lines = this.env.services.pos.get_order().get_orderlines();
+    const pos_config = this.env.services.pos.config;
+    const type = this.get_value_type();
+    const items = [];
 
-    get_values_items(){
+    for (const line of order_lines) {
+        //const product = line.product;
+        //const taxes = line.get_taxes() || [];
+        const product = line.get_product();
+        const taxes = product.taxes_id || [];
+        let iva = 0;
+        let code_intern = '';
+        let unit_measure = '0';
+
+        // Obtener tasa IVA
+        if (taxes.length) {
+            iva = taxes[0].amount || 0;
+        }
+
+        // Unidad de medida (AFIP)
+        const uom = line.get_unit();
+        if (uom?.afip_uom) {
+            unit_measure = String(parseInt(uom.afip_uom));
+        }
+
+        // Código interno
+        if (product.barcode) {
+            code_intern = product.barcode;
+        } else if (product.default_code) {
+            code_intern = product.default_code;
+        } else {
+            code_intern = '11111';
+        }
+
+        // Precio según versión de impresora y tipo de ticket
+        let price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
+
+        console.info("IMPRIMO PRECIO1");
+            console.info(price);
+
+        const all_prices = line.get_all_prices();
+        console.info("imprimo precio 2");
+        console.info(all_prices.priceWithTax);
+        console.info("line.quantity::::");
+        console.info(line.get_quantity());
+        if (pos_config.version_printer === 'hasar250') {
+            price = all_prices.priceWithTax;
+        } else if (pos_config.version_printer === 'epsont900fa') {
+            if (type === 83) {
+                console.info('is epson and is ticket 83');
+                price = all_prices.priceWithTax / line.get_quantity();
+            } else {
+                console.info('is epson and is not ticket');
+                price = all_prices.priceWithoutTax / line.get_quantity();
+            }
+        }
+
+        console.info("IMPRIMO PRECIO3");
+            console.info(price);
+
+        // Descuento general aplicado como producto
+        let product_discount_general = false;
+        if (pos_config.module_pos_discount) {
+            if (
+                this.config.discount_product_id &&
+                pos_config.discount_product_id[0] === product.id &&
+                price < 0
+            ) {
+                product_discount_general = true;
+            }
+        }
+
+        // Crear ítem
+        items.push({
+            description: product.display_name,
+            description_extra1: '',
+            qty: line.get_quantity(),
+            price: price,
+            iva: iva,
+            unit_measure: unit_measure,
+            code_intern: code_intern,
+            product_discount_general: product_discount_general
+        });
+    }
+
+    return items;
+},
+
+get_values_items1() {
+    const order_lines = this.env.services.pos.get_order().get_orderlines();
+    const pos_config = this.env.services.pos.config;
+    const type = this.get_value_type();
+    const items = [];
+
+    for (const line of order_lines) {
+        const product = line.get_product();
+        const taxes = product.taxes_id || [];
+        let iva = 0;
+        let code_intern = '';
+        let unit_measure = '0';
+
+        if (taxes.length) {
+            iva = taxes[0].amount || 0;
+            console.info("IVA:", iva);
+        }
+
+        const uom = line.get_unit();
+        if (uom && uom.afip_uom) {
+            unit_measure = String(parseInt(uom.afip_uom));
+        }
+
+        if (product.barcode) {
+            code_intern = product.barcode;
+        } else if (product.default_code) {
+            code_intern = product.default_code;
+        } else {
+            code_intern = '11111';
+        }
+
+       
+
+        let price = line.get_unit_price() * (1.0 - (line.get_discount() / 100.0));
+
+        console.info("IMPRIMO PRECIO1");
+            console.info(price);
+
+        if (pos_config.version_printer === 'hasar250') {
+            price = line.get_all_prices().priceWithTax;
+            console.info("IMPRIMO PRECIO2");
+            console.info(price);
+        } else if (pos_config.version_printer === 'epsont900fa') {
+            const all_prices = line.get_all_prices();
+            console.info("IMPRIMO PRECIO3");
+            console.info(price);
+            if (type === 83) {
+                console.info('is epson and is ticket');
+                price = all_prices.priceWithTax / line.quantity;
+            } else {
+                console.info('is epson and is not ticket');
+                price = all_prices.priceWithoutTax / line.quantity;
+            }
+        }
+
+        console.info("IMPRIMO PRECIO3");
+            console.info(price);
+
+        let product_discount_general = false;
+
+        if (pos_config.module_pos_discount) {
+            const is_discount_product = (
+                this.config.discount_product_id &&
+                pos_config.discount_product_id[0] === product.id &&
+                price < 0
+            );
+            if (is_discount_product) {
+                product_discount_general = true;
+            }
+        }
+
+        const item_vals = {
+            description: product.display_name,
+            description_extra1: '',
+            qty: line.quantity,
+            price: price,
+            iva: iva,
+            unit_measure: unit_measure,
+            code_intern: code_intern,
+            product_discount_general: product_discount_general
+        };
+
+        items.push(item_vals);
+    }
+
+    return items;
+},
+
+
+    get_values_items2(){
        var order_lines = this.env.services.pos.get_order().get_orderlines();
        var self = this;
        let pos_config = self.env.services.pos.config;
@@ -305,6 +454,9 @@ get_values_ticket() {
                 
             }
 
+            console.info("IMPRIMO PRECIO");
+            console.info(price);
+
             var product_discount_general = false;
            
             if ('module_pos_discount' in pos_config &&  pos_config.module_pos_discount){
@@ -317,7 +469,7 @@ get_values_ticket() {
             var item_vals = {
                 'description' : line.get_product().display_name,
                 'description_extra1' : '',
-                'qty' : line.quantity,
+                'qty' : line.get_product().quantity,
                 'price' : price,
                 'iva' : iva,
                 'unit_measure' : String(unit_measure),

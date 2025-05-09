@@ -11,7 +11,7 @@ Módulos para odoo Argentina POS Impresores fiscales Epson y Hasar
 |HASAR|SMH/PT250F|AFIP Nº 3954/1|09/11/2016|
 
 
-V16.0
+V18.0
 
 Instalación: Debe copiar el módulo pos_proxy_service dentro de su carpeta addons de odoo. 
 Además deberá descargar el módulo que hace de WebSocket correspondiente al modelo de impresor fiscal. 
