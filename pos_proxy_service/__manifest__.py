@@ -30,7 +30,7 @@
     'author': "Pronexo",
     'website': "https://www.pronexo.com",
     'category': 'Sales/Point of Sale',
-    'version': '18.0.0.0',
+    'version': '18.1.0.0',
     'license': 'OPL-1',
 
     # any module necessary for this one to work correctly
@@ -54,7 +54,7 @@
 
     'auto_install': False,
     'installable': True,
-    'price': 1200,
+    'price': 600,
     'currency': 'USD',
     'images': ['images/pos-proxy-service-home.png'],
     'live_test_url': 'https://www.youtube.com/watch?v=SKFlc8bKZAI'

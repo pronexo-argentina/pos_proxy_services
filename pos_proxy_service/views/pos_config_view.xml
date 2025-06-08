@@ -6,7 +6,6 @@
 	<field name="model">res.config.settings</field>
     <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
         <field name="arch" type="xml">
-			<!--<xpath expr="//block[@id='pos_interface_section']" position="inside">-->
                 <xpath expr="//block[@id='pos_bills_and_receipts_section']" position="inside">
                 <h2 name="POS12" groups="base.group_system">Impresora Fiscal</h2>
                 <div class="row mt16 o_settings_container"  groups="base.group_system">  
@@ -20,7 +19,6 @@
                                                                 
                         </div>
                     </div>                     
-		    <!--<div class="col-xs-12 col-md-6 o_setting_box" attrs="{'invisible': [('use_fiscal_printer', '=', False)]}">-->
 			    <div class="col-xs-12 col-md-6 o_setting_box" invisible="not use_fiscal_printer">
 			    <div class="o_setting_right_pane" >
                             <label for="proxy_fiscal_printer"/> 
@@ -34,7 +32,34 @@
                             <field name="version_printer" required='1' />   
                         </div>                        
                     </div>
+                
+
+
+                 <div class="col-xs-12 col-md-6 o_setting_box" id="auto_check_invoice">
+                    <div class="o_setting_left_pane">
+                        <field name="factura_automatica"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="factura_automatica">Auto Factura</label>
+                        <div class="text-muted">
+                            Auto Factura
+                        </div>
+                    </div>
                 </div>
+
+                   <div class="col-xs-12 col-md-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="pos_descargar_factura_pdf"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="pos_descargar_factura_pdf" string="Descargar Factura en PDF"/>
+                            <div class="text-muted">
+                                Habilite esta opción para permitir la descarga de la factura en PDF.
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
                
             </xpath>
         </field>

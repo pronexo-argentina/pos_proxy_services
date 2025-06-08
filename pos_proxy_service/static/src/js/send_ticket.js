@@ -11,7 +11,14 @@ import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment
 
 const { onMounted } = owl
 
+// Función de verificación de reembolso
+function isRefundOrder(order) {
+    if (!order) return false;
 
+    return !!order.refund_order_id || 
+           (order.get_orderlines().length > 0 && 
+            order.get_orderlines().every(line => line.get_quantity() < 0));
+}
 
 patch(ReceiptScreen.prototype, {
     setup() {
@@ -60,8 +67,7 @@ async print_pos_ticket() {
         vals: JSON.stringify(this.get_values_ticket())
     };
 
-      //console.info("imprimiendo url");
-      //console.info(data);
+
 
     try {
         const queryString = new URLSearchParams(data).toString();
@@ -86,7 +92,7 @@ async print_pos_ticket() {
 
 
 get_values_ticket() {
-    //const order = this.env.services.pos.get_order();
+    
     const order = this.pos.get_order();
     if (!order) return {};
 
@@ -120,10 +126,8 @@ get_values_ticket() {
    get_value_type() {
     const order = this.env.services.pos.get_order();
     const partner = order?.partner_id;
-    console.info("partner:");
-    console.info(partner.l10n_ar_afip_responsibility_type_id.name);
-    //const responsibilityType = partner?.l10n_ar_afip_responsibility_type_id.name?.[1];
     const responsibilityType = partner.l10n_ar_afip_responsibility_type_id.name;
+    const identificationType = partner.l10n_latam_identification_type_id.name;
 
     console.info("client responsibility:", responsibilityType);
 
@@ -137,9 +141,19 @@ get_values_ticket() {
         } else if (responsibilityType === 'IVA Sujeto Exento') {
             type = 82; // Factura B
         }
+        else if(responsibilityType == 'Consumidor Final' && identificationType == 'CUIT') {
+         type = 82;//Factura B
+        }
+        else if(responsibilityType == 'Consumidor Final' && identificationType == 'DNI') {
+        type = 82;//Factura B
+        }   
+        else if(responsibilityType == 'Consumidor Final' && identificationType == 'CUIL') {
+        type = 82;//Factura B
+        }
     }
-
-    console.info("Tipo comprobante fiscal:", type);
+    if (isRefundOrder(order)) {
+            type=110;
+    }    
     return type;
 },
 
@@ -154,10 +168,6 @@ get_values_ticket() {
     const responsibilityType = partner.l10n_ar_afip_responsibility_type_id.name;
     const identificationType = partner.l10n_latam_identification_type_id.name;
 
-     console.info("partner2:");
-    console.info(responsibilityType);
-    console.info("identification:");
-    console.info(identificationType);
 
     let id_responsabilidad_iva = 'E';  // Default: Exento
     if (responsibilityType) {
@@ -202,8 +212,7 @@ get_values_items() {
     const items = [];
 
     for (const line of order_lines) {
-        //const product = line.product;
-        //const taxes = line.get_taxes() || [];
+ 
         const product = line.get_product();
         const taxes = product.taxes_id || [];
         let iva = 0;
@@ -246,7 +255,10 @@ get_values_items() {
             }
         }
 
-
+        let desc01 = ''
+        if ((type == 83 || type == 82 || type == 111) && line.get_all_prices().tax > 0) {
+                desc01 = 'IVA ' + iva + '% ' + '$'+parseFloat(line.get_all_prices().tax).toFixed(2)
+        }
 
         // Descuento general aplicado como producto
         let product_discount_general = false;
@@ -262,11 +274,11 @@ get_values_items() {
 
         // Crear ítem
         items.push({
-            description: product.display_name,
+            description: desc01 +' - '+product.display_name,
             description_extra1: '',
-            qty: line.get_quantity(),
-            price: price,
-            iva: iva,
+            qty: Math.abs(line.get_quantity()),
+            price: Math.abs(price),
+            iva: Math.abs(iva),
             unit_measure: unit_measure,
             code_intern: code_intern,
             product_discount_general: product_discount_general
@@ -282,7 +294,6 @@ get_values_items() {
     get_values_paymentlines(){
         
         var paymentlines = this.env.services.pos.get_order().payment_ids;
-        console.info('get_values_paymentlines: ', paymentlines);
         var pagos = [];
          /*[      
                 {'codigo_forma_pago' : 20,
@@ -302,7 +313,7 @@ get_values_items() {
             var pay_vals = {
                 'codigo_forma_pago' : payment_afip,
                 'cantidad_cuotas': '',
-                'monto' : pay.amount,
+                'monto' : Math.abs(pay.amount),
                 'descripcion_cupones' : '',
                 'descripcion' : name,
                 'descripcion_extra1' : '',

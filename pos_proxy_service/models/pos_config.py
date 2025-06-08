@@ -10,10 +10,13 @@ class PosConfig(models.Model):
 		('hasar250', 'Hasar 250'),
 		('epsont900fa', 'Epson T900FA'),
 	], default='epsont900fa')
-
+	factura_automatica = fields.Boolean(string="Factura automatica ? ")
+	descargar_factura_pdf = fields.Boolean('Descargar factura PDF', default=True)
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
     use_fiscal_printer = fields.Boolean(related='pos_config_id.use_fiscal_printer',readonly=False)
     proxy_fiscal_printer = fields.Char(related='pos_config_id.proxy_fiscal_printer',readonly=False)
     version_printer= fields.Selection(related='pos_config_id.version_printer',readonly=False)
+    factura_automatica = fields.Boolean(related="pos_config_id.factura_automatica", readonly=False)
+    pos_descargar_factura_pdf = fields.Boolean(related='pos_config_id.descargar_factura_pdf', readonly=False)
